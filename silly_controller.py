@@ -13,6 +13,7 @@ import os
 
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import Int16
+from std_msgs.msg import Float32
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 
@@ -35,7 +36,7 @@ def crying_polar_bears(data):
     
 def crying_animals_in_general(data):
     global yaw_disturbance
-    yaw_disturbance = 0.261799*data.data
+    yaw_disturbance = 5*data.data
     pass
     
 def crying_mother_earth_in_general(data):
@@ -51,15 +52,16 @@ def crying_mother_earth_in_general(data):
     
 # get the time step of the current world.
 timeStep = int(robot.getBasicTimeStep())
+print("Time Step is: "+str(timeStep))
 # Get and enable devices.
 rospy.init_node('python_submarine_controller', anonymous=True) # node is called 'python_webots_controller'
 rospy.loginfo("Loading Webots Controller")
 pub = rospy.Publisher('imu_values_topic', Vector3, queue_size=10)
-depth_pub = rospy.Publisher('depth_topic', Int16, queue_size=10)
+depth_pub = rospy.Publisher('depth_topic', Float32, queue_size=10)
 log_pub = rospy.Publisher('python_submarine_logger', String, queue_size=10)
 camera_pub = rospy.Publisher('python_submarine_camera_images', Image, queue_size=10)
 rearcamera_pub = rospy.Publisher('python_submarine_rear_camera_images', Image, queue_size=10)
-
+bleh_pub = rospy.Publisher("python_submarine_heading_speed",Float32,queue_size=10)
 speed_pub = rospy.Publisher('python_submarine_speeds', Vector3, queue_size=10)
 
 
@@ -145,7 +147,7 @@ altitude_old=altitude
 zpos_old=zpos
 roll_vel_old=0
 lock_on = False
-depth_msg = Int16()
+depth_msg = Float32()
 pi = math.pi
 # Main loop:
 # - perform simulation steps until Webots is stopping the controller
@@ -155,9 +157,10 @@ while robot.step(timeStep) != -1:
     xpos, altitude , zpos = GPSsensor.getValues()
     roll_vel, bleh, pitch_vel =GYROsensor.getValues()
     #print(str(roll_vel)+"\t"+str(pitch_vel))
-    xSpeed=(xpos-xpos_old)/timeStep
+    littleTimeStep = timeStep/1000.0
+    xSpeed=(xpos-xpos_old)/littleTimeStep
     ySpeed=(altitude-altitude_old)/timeStep
-    zSpeed=(zpos-zpos_old)/timeStep
+    zSpeed=(zpos-zpos_old)/littleTimeStep
     #print(str(xSpeed)+"\t"+str(ySpeed)+"\t"+str(zSpeed))
     xpos_old=xpos
     altitude_old=altitude
@@ -185,6 +188,10 @@ while robot.step(timeStep) != -1:
     rearcamera_image_msg.is_bigendian = 1
     rearcamera_image_msg.step = 1280
     rearcamera_image_msg.data = rearcamera.getImage()
+   
+            
+    #rearcamera_image_msg.data = flat_list
+            
     rearcamera_pub.publish(rearcamera_image_msg)
     
     depth_msg.data = altitude
@@ -194,9 +201,10 @@ while robot.step(timeStep) != -1:
     # Process sensor data here.
     #rospy.loginfo("Sending Simulated IMU Data. Roll: "+str(round(roll*radcoeff))+" Pitch: "+str(round(pitch*radcoeff))+" Heading: "+str(round(heading*radcoeff)))
     pub.publish(Vector3(roll*radcoeff*-1,pitch*radcoeff*-1,heading*radcoeff*-1))
-    speed_pub.publish(Vector3(xSpeed*10000,ySpeed*10000,zSpeed*10000))
+    speed_pub.publish(Vector3(math.cos(heading)*xSpeed*-1+math.sin(heading)*zSpeed*-1,ySpeed,math.sin(heading)*xSpeed+math.cos(heading)*zSpeed))
     log_pub.publish(str(round(roll*radcoeff))+","+str(round(pitch*radcoeff))+","+str(round(heading*radcoeff))+","+str(altitude)+","+str(roll_vel)+","+str(bleh)+","+str(pitch_vel)+","+str(xSpeed)+","+str(ySpeed)+","+str(zSpeed))
     
+    bleh_pub.publish(bleh)
     
     front_left_motor_input = 0
     front_right_motor_input = 0
@@ -237,9 +245,9 @@ while robot.step(timeStep) != -1:
         if (key==ord('D')):
             roll_disturbance = -0.261799
         if (key==ord('Q')):
-            yaw_disturbance = 1
+            yaw_disturbance = 5
         if (key==ord('E')):
-            yaw_disturbance = -1
+            yaw_disturbance = -5
         if (key==ord('Z')):
             target_altitude = altitude+0.1
         if (key==ord('X')):
