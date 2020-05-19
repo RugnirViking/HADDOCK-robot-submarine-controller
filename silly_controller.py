@@ -45,7 +45,7 @@ def crying_mother_earth_in_general(data):
     if data.data==1:
         target_altitude = altitude+0.1
     elif data.data==-1:
-        target_altitude = altitude+0.1
+        target_altitude = altitude-0.1
         
     pass
     
@@ -201,7 +201,15 @@ while robot.step(timeStep) != -1:
     # Process sensor data here.
     #rospy.loginfo("Sending Simulated IMU Data. Roll: "+str(round(roll*radcoeff))+" Pitch: "+str(round(pitch*radcoeff))+" Heading: "+str(round(heading*radcoeff)))
     pub.publish(Vector3(roll*radcoeff*-1,pitch*radcoeff*-1,heading*radcoeff*-1))
-    speed_pub.publish(Vector3(math.cos(heading)*xSpeed*-1+math.sin(heading)*zSpeed*-1,ySpeed,math.sin(heading)*xSpeed+math.cos(heading)*zSpeed))
+    
+    #  heading = 90
+    #  zSpeed = -1
+    fSpeed = math.cos(heading)*xSpeed*-1+math.sin(heading)*zSpeed
+    # fspeed = 1
+    vSpeed = ySpeed
+    sSpeed = math.sin(heading)*xSpeed+math.cos(heading)*zSpeed
+    print("Heading: "+str(heading)+"\tXSpeed: "+str(xSpeed)+"\tZSpeed: "+str(zSpeed)+"\tFSpeed"+str(fSpeed))
+    speed_pub.publish(Vector3(fSpeed,vSpeed,sSpeed))
     log_pub.publish(str(round(roll*radcoeff))+","+str(round(pitch*radcoeff))+","+str(round(heading*radcoeff))+","+str(altitude)+","+str(roll_vel)+","+str(bleh)+","+str(pitch_vel)+","+str(xSpeed)+","+str(ySpeed)+","+str(zSpeed))
     
     bleh_pub.publish(bleh)
